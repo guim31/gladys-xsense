@@ -1,6 +1,6 @@
 {
   "name": "gladys-xsense",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
   "description": "X-Sense smoke, CO, heat and water leak detectors for Gladys Assistant (external integration).",
   "type": "module",

@@ -10,6 +10,8 @@ the notes of the version's GitHub Release.
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-10-15
+
 ### Added
 
 - X-Sense smoke, carbon monoxide, heat and water leak detectors in Gladys, through
@@ -26,4 +28,5 @@ the notes of the version's GitHub Release.
 - "Test the connection" button, which lists the detectors found.
 - English, French, German and Spanish texts and documentation.
 
-[Unreleased]: https://github.com/guim31/gladys-xsense/commits/main
+[Unreleased]: https://github.com/guim31/gladys-xsense/compare/v1.0.1...HEAD
+[1.0.1]: https://github.com/guim31/gladys-xsense/releases/tag/v1.0.1
