@@ -1,177 +1,448 @@
 {
   "manifest_version": 1,
   "type": "device",
-  "name": "Demo Devices Template",
+  "name": "X-Sense",
   "description": {
-    "en": "Starter template showing sensors, a switch, a dimmable light and a smart plug.",
-    "fr": "Template de démarrage : capteurs, interrupteur, lampe variable et prise connectée."
+    "en": "X-Sense smoke, CO, heat and water leak detectors in Gladys: alarms, battery, base station.",
+    "fr": "Détecteurs X-Sense de fumée, CO, chaleur et fuite d'eau dans Gladys : alarmes, batterie, station.",
+    "de": "X-Sense Rauch-, CO-, Hitze- und Wassermelder in Gladys: Alarme, Batterie, Basisstation.",
+    "es": "Detectores X-Sense de humo, CO, calor y fugas de agua en Gladys: alarmas, batería, estación."
   },
   "version": "1.0.0",
-  "docker_image": "ghcr.io/gladysassistant/integration-template-js:1.0.0",
+  "docker_image": "ghcr.io/guim31/gladys-xsense:1.0.0",
   "gladys_version": ">=5.1.0",
-  "cover_image": "https://raw.githubusercontent.com/GladysAssistant/integration-template-js/master/cover.png",
-  "categories": ["lighting", "security", "environment"],
-  "transports": ["local", "cloud"],
+  "cover_image": "https://raw.githubusercontent.com/guim31/gladys-xsense/main/cover.png",
+  "categories": ["security"],
+  "transports": ["cloud"],
   "config_schema": [
     {
       "key": "intro",
       "type": "section",
-      "label": { "en": "Getting started", "fr": "Pour commencer" },
+      "label": {
+        "en": "X-Sense account",
+        "fr": "Compte X-Sense",
+        "de": "X-Sense-Konto",
+        "es": "Cuenta X-Sense"
+      },
       "description": {
-        "en": "The demo weather station reads real data from the free Open-Meteo API: pick the coordinates to observe. No account, no API key.",
-        "fr": "La station météo de démonstration lit de vraies données via l'API gratuite Open-Meteo : choisissez les coordonnées à observer. Pas de compte, pas de clé d'API."
+        "en": "Use the e-mail and password of the X-Sense Home Security app. Tip: create a second X-Sense account, share your home with it from the app, and use it here. Gladys does not replace the sirens of your detectors.",
+        "fr": "Utilisez l'e-mail et le mot de passe de l'application X-Sense Home Security. Conseil : créez un second compte X-Sense, partagez-lui votre maison depuis l'application, et utilisez-le ici. Gladys ne remplace pas les sirènes de vos détecteurs.",
+        "de": "Verwende die E-Mail-Adresse und das Passwort der App X-Sense Home Security. Tipp: Lege ein zweites X-Sense-Konto an, teile dein Zuhause in der App damit und verwende es hier. Gladys ersetzt nicht die Sirenen deiner Melder.",
+        "es": "Utilice el correo electrónico y la contraseña de la aplicación X-Sense Home Security. Consejo: cree una segunda cuenta X-Sense, comparta su casa con ella desde la aplicación y utilícela aquí. Gladys no sustituye a las sirenas de sus detectores."
       },
       "links": [
         {
-          "url": "https://open-meteo.com/en/docs",
-          "label": { "en": "Open-Meteo documentation", "fr": "Documentation Open-Meteo" }
+          "url": "https://github.com/guim31/gladys-xsense/blob/main/docs/en.md",
+          "label": {
+            "en": "Documentation",
+            "fr": "Documentation",
+            "de": "Dokumentation",
+            "es": "Documentación"
+          }
         }
       ]
     },
     {
-      "key": "latitude",
-      "type": "number",
-      "label": { "en": "Latitude", "fr": "Latitude" },
-      "description": {
-        "en": "Latitude used for the demo weather sensor.",
-        "fr": "Latitude utilisée par le capteur météo de démonstration."
+      "key": "email",
+      "type": "string",
+      "label": {
+        "en": "E-mail",
+        "fr": "E-mail",
+        "de": "E-Mail-Adresse",
+        "es": "Correo electrónico"
       },
-      "placeholder": { "en": "e.g. 48.8566", "fr": "ex. 48.8566" },
-      "required": true,
-      "default": 48.8566,
-      "min": -90,
-      "max": 90
+      "description": {
+        "en": "E-mail of the X-Sense account.",
+        "fr": "E-mail du compte X-Sense.",
+        "de": "E-Mail-Adresse des X-Sense-Kontos.",
+        "es": "Correo electrónico de la cuenta X-Sense."
+      },
+      "placeholder": {
+        "en": "name@example.com",
+        "fr": "nom@exemple.fr",
+        "de": "name@beispiel.de",
+        "es": "nombre@ejemplo.es"
+      },
+      "required": true
     },
     {
-      "key": "longitude",
-      "type": "number",
-      "label": { "en": "Longitude", "fr": "Longitude" },
-      "description": {
-        "en": "Longitude used for the demo weather sensor.",
-        "fr": "Longitude utilisée par le capteur météo de démonstration."
+      "key": "password",
+      "type": "secret",
+      "label": {
+        "en": "Password",
+        "fr": "Mot de passe",
+        "de": "Passwort",
+        "es": "Contraseña"
       },
-      "placeholder": { "en": "e.g. 2.3522", "fr": "ex. 2.3522" },
-      "required": true,
-      "default": 2.3522,
-      "min": -180,
-      "max": 180
+      "required": true
     },
     {
-      "key": "unit",
+      "key": "language",
       "type": "select",
-      "label": { "en": "Temperature unit", "fr": "Unité de température" },
+      "label": {
+        "en": "Language of the feature names",
+        "fr": "Langue des noms de fonctionnalités",
+        "de": "Sprache der Funktionsnamen",
+        "es": "Idioma de los nombres de las funciones"
+      },
+      "description": {
+        "en": "Names given to the features of a new device (Gladys keeps them once created), and of the self-test results.",
+        "fr": "Noms donnés aux fonctionnalités d'un nouvel appareil (Gladys les garde une fois créé), et des résultats d'auto-test.",
+        "de": "Namen der Funktionen eines neuen Geräts (Gladys behält sie nach dem Anlegen) und der Selbsttest-Ergebnisse.",
+        "es": "Nombres de las funciones de un dispositivo nuevo (Gladys los conserva una vez creado) y de los resultados de la autoprueba."
+      },
       "required": false,
-      "default": "celsius",
+      "default": "fr",
       "options": [
-        { "value": "celsius", "label": { "en": "Celsius", "fr": "Celsius" } },
-        { "value": "fahrenheit", "label": { "en": "Fahrenheit", "fr": "Fahrenheit" } }
+        {
+          "value": "en",
+          "label": {
+            "en": "English",
+            "fr": "English",
+            "de": "English",
+            "es": "English"
+          }
+        },
+        {
+          "value": "fr",
+          "label": {
+            "en": "Français",
+            "fr": "Français",
+            "de": "Français",
+            "es": "Français"
+          }
+        },
+        {
+          "value": "de",
+          "label": {
+            "en": "Deutsch",
+            "fr": "Deutsch",
+            "de": "Deutsch",
+            "es": "Deutsch"
+          }
+        },
+        {
+          "value": "es",
+          "label": {
+            "en": "Español",
+            "fr": "Español",
+            "de": "Español",
+            "es": "Español"
+          }
+        }
       ]
     },
     {
-      "key": "poll_frequency",
+      "key": "refresh_minutes",
       "type": "number",
-      "label": { "en": "Refresh interval (s)", "fr": "Intervalle de rafraîchissement (s)" },
+      "label": {
+        "en": "Cloud read interval (min)",
+        "fr": "Intervalle de lecture du cloud (min)",
+        "de": "Cloud-Leseintervall (min)",
+        "es": "Intervalo de lectura de la nube (min)"
+      },
       "description": {
-        "en": "How often sensors are polled, in seconds (one minute minimum).",
-        "fr": "Fréquence d'interrogation des capteurs, en secondes (une minute minimum)."
+        "en": "Alarms arrive live from the X-Sense cloud. This periodic read is the safety net and refreshes battery and signal.",
+        "fr": "Les alarmes arrivent en direct du cloud X-Sense. Cette lecture périodique sert de filet de sécurité et rafraîchit batterie et signal.",
+        "de": "Alarme kommen live aus der X-Sense-Cloud. Dieses regelmäßige Lesen ist das Sicherheitsnetz und aktualisiert Batterie und Signal.",
+        "es": "Las alarmas llegan en directo desde la nube de X-Sense. Esta lectura periódica es la red de seguridad y actualiza batería y señal."
       },
       "required": false,
-      "default": 300,
-      "min": 60,
-      "max": 3600
+      "default": 5,
+      "min": 1,
+      "max": 60
     }
   ],
   "actions": [
     {
-      "key": "test_weather",
-      "label": { "en": "Test the weather provider", "fr": "Tester le fournisseur météo" },
-      "timeout_seconds": 30
-    },
-    {
-      "key": "identify",
-      "label": { "en": "Identify a device", "fr": "Identifier un appareil" },
-      "fields": [
-        {
-          "key": "device",
-          "type": "select",
-          "source": "devices",
-          "label": { "en": "Device", "fr": "Appareil" },
-          "required": true
-        }
-      ]
+      "key": "test_connection",
+      "label": {
+        "en": "Test the connection",
+        "fr": "Tester la connexion",
+        "de": "Verbindung testen",
+        "es": "Probar la conexión"
+      },
+      "timeout_seconds": 60
     }
   ],
   "scene_triggers": [
     {
-      "key": "motion_detected",
-      "label": { "en": "Motion detected", "fr": "Mouvement détecté" },
+      "key": "fire_alarm",
+      "label": {
+        "en": "Fire alarm (smoke or heat)",
+        "fr": "Alarme incendie (fumée ou chaleur)",
+        "de": "Feueralarm (Rauch oder Hitze)",
+        "es": "Alarma de incendio (humo o calor)"
+      },
       "description": {
-        "en": "A demo motion sensor saw a person or an animal move.",
-        "fr": "Un détecteur de démonstration a vu bouger une personne ou un animal."
+        "en": "An X-Sense detector raised a smoke or heat alarm. Cloud delay: a few seconds.",
+        "fr": "Un détecteur X-Sense déclenche une alarme fumée ou chaleur. Délai du cloud : quelques secondes.",
+        "de": "Ein X-Sense-Melder löst einen Rauch- oder Hitzealarm aus. Cloud-Verzögerung: einige Sekunden.",
+        "es": "Un detector X-Sense ha activado una alarma de humo o calor. Retraso de la nube: unos segundos."
       },
       "fields": [
         {
           "key": "device",
           "type": "select",
           "source": "devices",
-          "label": { "en": "Sensor", "fr": "Détecteur" }
+          "label": {
+            "en": "Detector (any if empty)",
+            "fr": "Détecteur (tous si vide)",
+            "de": "Melder (alle, wenn leer)",
+            "es": "Detector (todos si está vacío)"
+          }
         },
         {
-          "key": "target",
-          "type": "multi_select",
-          "label": { "en": "What moved", "fr": "Ce qui a bougé" },
+          "key": "cause",
+          "type": "select",
+          "label": {
+            "en": "Cause (any if empty)",
+            "fr": "Cause (toutes si vide)",
+            "de": "Ursache (alle, wenn leer)",
+            "es": "Causa (todas si está vacío)"
+          },
           "options": [
-            { "value": "person", "label": { "en": "Person", "fr": "Personne" } },
-            { "value": "animal", "label": { "en": "Animal", "fr": "Animal" } }
+            {
+              "value": "smoke",
+              "label": {
+                "en": "Smoke",
+                "fr": "Fumée",
+                "de": "Rauch",
+                "es": "Humo"
+              }
+            },
+            {
+              "value": "heat",
+              "label": {
+                "en": "Heat",
+                "fr": "Chaleur",
+                "de": "Hitze",
+                "es": "Calor"
+              }
+            }
           ]
         }
       ],
       "variables": [
         {
-          "key": "target",
+          "key": "device_name",
           "type": "string",
-          "label": { "en": "What moved", "fr": "Ce qui a bougé" }
+          "label": {
+            "en": "Detector name",
+            "fr": "Nom du détecteur",
+            "de": "Name des Melders",
+            "es": "Nombre del detector"
+          }
+        },
+        {
+          "key": "room",
+          "type": "string",
+          "label": {
+            "en": "Room",
+            "fr": "Pièce",
+            "de": "Raum",
+            "es": "Habitación"
+          }
+        },
+        {
+          "key": "cause",
+          "type": "string",
+          "label": {
+            "en": "Cause (smoke or heat)",
+            "fr": "Cause (smoke ou heat)",
+            "de": "Ursache (smoke oder heat)",
+            "es": "Causa (smoke o heat)"
+          }
         }
       ]
-    }
-  ],
-  "scene_actions": [
+    },
     {
-      "key": "identify_device",
-      "label": { "en": "Identify a device", "fr": "Identifier un appareil" },
-      "description": {
-        "en": "Make a device signal itself (the demo light blinks).",
-        "fr": "Fait se signaler un appareil (la lampe de démonstration clignote)."
+      "key": "co_alarm",
+      "label": {
+        "en": "CO alarm",
+        "fr": "Alarme CO",
+        "de": "CO-Alarm",
+        "es": "Alarma de CO"
       },
-      "timeout_seconds": 15,
+      "description": {
+        "en": "An X-Sense detector raised a carbon monoxide alarm. Cloud delay: a few seconds.",
+        "fr": "Un détecteur X-Sense déclenche une alarme monoxyde de carbone. Délai du cloud : quelques secondes.",
+        "de": "Ein X-Sense-Melder löst einen Kohlenmonoxid-Alarm aus. Cloud-Verzögerung: einige Sekunden.",
+        "es": "Un detector X-Sense ha activado una alarma de monóxido de carbono. Retraso de la nube: unos segundos."
+      },
       "fields": [
         {
           "key": "device",
           "type": "select",
           "source": "devices",
-          "label": { "en": "Device", "fr": "Appareil" },
-          "required": true
+          "label": {
+            "en": "Detector (any if empty)",
+            "fr": "Détecteur (tous si vide)",
+            "de": "Melder (alle, wenn leer)",
+            "es": "Detector (todos si está vacío)"
+          }
         }
       ],
-      "outputs": [
+      "variables": [
         {
-          "key": "signalled",
-          "type": "boolean",
-          "label": { "en": "Device signalled", "fr": "Appareil signalé" }
+          "key": "device_name",
+          "type": "string",
+          "label": {
+            "en": "Detector name",
+            "fr": "Nom du détecteur",
+            "de": "Name des Melders",
+            "es": "Nombre del detector"
+          }
+        },
+        {
+          "key": "room",
+          "type": "string",
+          "label": {
+            "en": "Room",
+            "fr": "Pièce",
+            "de": "Raum",
+            "es": "Habitación"
+          }
+        },
+        {
+          "key": "co_ppm",
+          "type": "number",
+          "label": {
+            "en": "CO level (ppm)",
+            "fr": "Niveau de CO (ppm)",
+            "de": "CO-Wert (ppm)",
+            "es": "Nivel de CO (ppm)"
+          }
+        }
+      ]
+    },
+    {
+      "key": "water_leak",
+      "label": {
+        "en": "Water leak",
+        "fr": "Fuite d'eau",
+        "de": "Wasserleck",
+        "es": "Fuga de agua"
+      },
+      "description": {
+        "en": "An X-Sense water leak detector detected water. Cloud delay: a few seconds.",
+        "fr": "Un détecteur de fuite X-Sense détecte de l'eau. Délai du cloud : quelques secondes.",
+        "de": "Ein X-Sense-Wassermelder erkennt Wasser. Cloud-Verzögerung: einige Sekunden.",
+        "es": "Un detector de fugas X-Sense ha detectado agua. Retraso de la nube: unos segundos."
+      },
+      "fields": [
+        {
+          "key": "device",
+          "type": "select",
+          "source": "devices",
+          "label": {
+            "en": "Detector (any if empty)",
+            "fr": "Détecteur (tous si vide)",
+            "de": "Melder (alle, wenn leer)",
+            "es": "Detector (todos si está vacío)"
+          }
+        }
+      ],
+      "variables": [
+        {
+          "key": "device_name",
+          "type": "string",
+          "label": {
+            "en": "Detector name",
+            "fr": "Nom du détecteur",
+            "de": "Name des Melders",
+            "es": "Nombre del detector"
+          }
+        },
+        {
+          "key": "room",
+          "type": "string",
+          "label": {
+            "en": "Room",
+            "fr": "Pièce",
+            "de": "Raum",
+            "es": "Habitación"
+          }
+        }
+      ]
+    },
+    {
+      "key": "low_battery",
+      "label": {
+        "en": "Low battery",
+        "fr": "Batterie faible",
+        "de": "Batterie schwach",
+        "es": "Batería baja"
+      },
+      "description": {
+        "en": "The battery of an X-Sense detector became low (once per low-battery period).",
+        "fr": "La batterie d'un détecteur X-Sense devient faible (une fois par période de batterie faible).",
+        "de": "Die Batterie eines X-Sense-Melders wird schwach (einmal pro Zeitraum mit schwacher Batterie).",
+        "es": "La batería de un detector X-Sense está baja (una vez por periodo de batería baja)."
+      },
+      "fields": [
+        {
+          "key": "device",
+          "type": "select",
+          "source": "devices",
+          "label": {
+            "en": "Detector (any if empty)",
+            "fr": "Détecteur (tous si vide)",
+            "de": "Melder (alle, wenn leer)",
+            "es": "Detector (todos si está vacío)"
+          }
+        }
+      ],
+      "variables": [
+        {
+          "key": "device_name",
+          "type": "string",
+          "label": {
+            "en": "Detector name",
+            "fr": "Nom du détecteur",
+            "de": "Name des Melders",
+            "es": "Nombre del detector"
+          }
+        },
+        {
+          "key": "room",
+          "type": "string",
+          "label": {
+            "en": "Room",
+            "fr": "Pièce",
+            "de": "Raum",
+            "es": "Habitación"
+          }
+        },
+        {
+          "key": "battery",
+          "type": "number",
+          "label": {
+            "en": "Battery (%)",
+            "fr": "Batterie (%)",
+            "de": "Batterie (%)",
+            "es": "Batería (%)"
+          }
         }
       ]
     }
   ],
   "widgets": [
     {
-      "key": "demo_status",
-      "label": { "en": "Demo status", "fr": "État de la démo" },
-      "description": {
-        "en": "Live temperature and plug power, plug connection and observed location.",
-        "fr": "Température et puissance en direct, connexion de la prise, position observée."
+      "key": "detectors",
+      "label": {
+        "en": "X-Sense detectors",
+        "fr": "Détecteurs X-Sense",
+        "de": "X-Sense-Melder",
+        "es": "Detectores X-Sense"
       },
-      "icon": "activity",
-      "action_timeout_seconds": 15
+      "description": {
+        "en": "Every X-Sense detector: alarm, online state and battery, alarms first.",
+        "fr": "Tous les détecteurs X-Sense : alarme, connexion et batterie, alarmes en tête.",
+        "de": "Alle X-Sense-Melder: Alarm, Verbindung und Batterie, Alarme zuerst.",
+        "es": "Todos los detectores X-Sense: alarma, conexión y batería, alarmas primero."
+      },
+      "icon": "shield"
     }
   ]
 }

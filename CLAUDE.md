@@ -22,6 +22,7 @@ npm run lint                              # ESLint
 npm run format:check                      # Prettier, as the CI runs it
 npm run format                            # Prettier, fix in place
 npx github:GladysAssistant/integration-store .   # store admission checks
+node scripts/probe.mjs                    # real X-Sense cloud, made-up account (read only)
 ```
 
 The CI (`.github/workflows/ci.yml`) runs `format:check`, `lint` and `test` on
@@ -31,16 +32,23 @@ pushing.
 ## Architecture
 
 ```
-index.js                          SDK wiring only: handlers registered before connect()
-src/devices/index.js              registry of the device blueprints + dispatch helpers
-src/devices/<type>.js             one device type per file (buildDevice, onPoll, onSetValue...)
-src/scenes.js                     scene action handlers (manifest `scene_actions`)
-src/widgets.js                    dashboard widget handlers (manifest `widgets`)
+index.js                          SDK wiring only: new GladysIntegration(), registerHandlers, connect()
+src/app.js                        Gladys handlers (scan, poll fallback, device created, action, widget, config)
+src/hub.js                        the account: own refresh timer, MQTT live updates, states, scene triggers
+src/devices.js                    Gladys devices and features of a unit (detector, base station), their states
+src/widgets.js                    the "detectors" dashboard widget (pure builder)
+src/i18n.js                       every visible text in en/fr/de/es (feature names, messages)
 src/config.js                     DEFAULT_CONFIG (mirrors the manifest defaults) + normalization
-src/weather.js                    example driver (Open-Meteo)
-gladys-assistant-integration.json manifest: name, config_schema, actions, image...
-docs/en.md, docs/fr.md            user documentation, re-hosted by Gladys (mandatory)
-test/                             node --test, against the SDK's fake Gladys (integration-sdk/testing)
+src/store.js                      /data/xsense.json (session tokens, self-tests, low-battery memory)
+src/issues.js                     repeated failures logged once, and their recovery
+src/xsense/client.js              X-Sense cloud client, read only (API, Cognito SRP, AWS IoT shadows)
+src/xsense/crypto.js              SRP, SECRET_HASH, request mac, AWS SigV4, presigned MQTT URL
+src/xsense/mqtt.js                minimal MQTT 3.1.1 client over WebSocket (subscribe only)
+src/xsense/model.js               families, thing names, shadow shapes, derived states (pure)
+scripts/probe.mjs                 read-only probe of the real cloud (made-up or real account)
+gladys-assistant-integration.json manifest: name, config_schema, actions, triggers, widget...
+docs/{en,fr,de,es}.md             user documentation, same sections, re-hosted by Gladys
+test/                             node --test, SDK fake Gladys + simulated X-Sense cloud (test/helpers)
 .github/scripts/release.mjs       release helpers (manifest bump, changelog), tested in test/
 ```
 
@@ -70,8 +78,10 @@ test/                             node --test, against the SDK's fake Gladys (in
   `type: "provider"`: 5.1.0). `test/manifest.test.js` ties the manifest to the
   code (defaults, action, scene and widget handlers): change both sides
   together.
-- **User-facing text** is bilingual (English and French): action messages,
-  manifest texts, and `docs/en.md` / `docs/fr.md`, kept in sync.
+- **User-facing text** is in four languages (English, French, German with "du",
+  Spanish with "usted"): action messages, manifest texts, feature names, widget
+  texts, and `docs/en.md`, `docs/fr.md`, `docs/de.md`, `docs/es.md` with the same
+  sections. `test/i18n.test.js` checks it.
 - **Style.** Prettier formats, ESLint catches mistakes. Comments explain why,
   in English. Tests never touch the network.
 
@@ -233,3 +243,40 @@ long, et sur un « Sie »/« Ihr… » de politesse en allemand. Le store exige 
 - Docs `en`, `fr`, `de`, `es` avec les mêmes sections.
 - Chauffe, ouverture, sécurité : ne rien rendre pilotable « comme un thermostat » ou par un assistant
   vocal quand une erreur serait dangereuse (leçon d'OctoPrint).
+
+## X-Sense (propre à cette intégration)
+
+**L'API.** Pas d'API publique : c'est l'API privée de l'application Android, rétro-conçue par python-xsense (sans
+fichier LICENSE, MIT déclaré dans `setup.py`) et l'intégration Home Assistant de Jarnsen (Apache-2.0, notes APK 1400
+dans `APK_EVIDENCE.md`). Trois services AWS :
+
+- `POST https://api.x-sense-iot.com/app`, un `bizCode` par opération : 101001 (sans auth : client Cognito), 101003
+  (identifiants AWS temporaires), 102007 maisons, 102008 pièces, 103007 stations et leurs détecteurs. Chaque requête
+  authentifiée porte `mac` = MD5(valeurs des champs métier, dans l'ordre, + secret client) et `Authorization:
+<access token>` (sans « Bearer »). Identité de l'app : `appCode` 1400, `appVersion` v1.40.0_20260612,
+  `clientType` 2. Le secret client de 101001 est base64(`<appCode><secret><1 octet>`).
+- Cognito `USER_SRP_AUTH` puis `PASSWORD_VERIFIER`, avec `SECRET_HASH` ; au rafraîchissement, l'app envoie le secret
+  client brut comme `SECRET_HASH` (repris tel quel, repli sur une connexion complète s'il est refusé).
+- AWS IoT : shadows nommés lus en `GET https://<mqttRegion>.x-sense-iot.com/things/<thing>/shadow?name=<nom>` signé
+  SigV4 (service `iotdata`) ; MQTT sur `wss://<mqttServer>/mqtt` présigné, utilisateur `?SDK=iOS&Version=2.26.5`.
+  Thing : `SBS50<sn>`, `<sn>` nu pour la SBS10, `<modèle>-<sn>` pour les Wi-Fi « tiret » (XC04-WX…). La SBS50 lit
+  `2nd_mainpage` + `2nd_info_<sn>`, la SBS10 `mainpage` + `info_<sn>` ; les détecteurs Wi-Fi sont dans le shadow de la
+  **maison** (thing = houseId, `mainpage`/`2nd_mainpage`, un enregistrement par numéro de série).
+
+**Pièges retenus (sans matériel, d'après les références) :**
+
+- `alarmStatus` est un **code**, pas un booléen : tout positif = alarme ; sur un combiné fumée + CO, 1 = fumée, 2 = CO,
+  3 = les deux. Un autre code positif lève les deux (choix de sécurité). `isAlarm` en est l'alias.
+- `batInfo` vaut 0 à 3 (pas un pourcentage) ; ≤ 1 = batterie faible. `rfLevel` 0 à 3.
+- Un **même compte** ne peut pas rester connecté à l'app et ailleurs : chacun déconnecte l'autre. La doc impose un
+  second compte partagé ; le client se reconnecte une fois sur `errCode` 10000008/10000020.
+- Un mot de passe refusé n'est **jamais réessayé** automatiquement (risque de blocage du compte) : on attend une
+  nouvelle configuration ou l'action « Tester la connexion ».
+- Le résultat d'auto-test n'arrive que par MQTT (topics `…selftestup…`, `…_testup…`) : il est gardé dans `/data`.
+- Pas de couple Gladys pour un niveau de CO en ppm (`co-sensor` n'a que `binary`) : il passe par le widget et la
+  variable `co_ppm` du déclencheur. La chaleur (XH02-M) est publiée en `smoke-sensor/binary` (pas de catégorie
+  chaleur ; c'est une alarme incendie).
+- Aucune commande (couper, tester, exercice) : l'API ne les propose que par écriture de shadows spécifiques à chaque
+  modèle, non vérifiables sans matériel, et couper une alarme à distance est dangereux.
+- L'API X-Sense est refusée par le proxy des sessions de code ; Cognito y répond. `scripts/probe.mjs` sert à
+  l'orchestrateur, depuis une machine qui a le réseau.
